@@ -62,8 +62,6 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
             assignments.append((int(cluster_number), int(orf_number), orf_id))
         # Fill in output json with object assignments
         domains = []
-        go_results = []
-        path_results = []
         for cluster_no, orf_no, orf_id in assignments:
             if clusters.get(cluster_no) is None:
                 cluster = {}
@@ -79,8 +77,6 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
             orf = orfs[orf_no]
             orf['id'] = orf_id
             orf['domains'] = domains
-            orf['go_results'] = go_results
-            orf['path_results'] = path_results
         # Fill in output dictionary with data
         for match in r['matches']:
             match_accession = match['signature']['accession']
@@ -91,17 +87,8 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
                 match_desc = match['signature']['entry']['description']
             except (KeyError, TypeError):
                 pass
-            for loc in match['locations']:
-                start = int(loc['start'])
-                end = int(loc['end'])
-                # Build domain entry
-                domain = {
-                    "start": start,
-                    "end": end,
-                    "id": match_accession,
-                    "description": match_desc
-                }
-                domains.append(domain)
+            go_results = []
+            path_results = []
             try:
                 # Look for associated Gene Ontology entries
                 for go_result in match['signature']['entry']['goXRefs']:
@@ -114,6 +101,20 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
                     path_results.append(path['id'])
             except (KeyError, TypeError):
                 pass
+            for loc in match['locations']:
+                start = int(loc['start'])
+                end = int(loc['end'])
+                # Build domain entry
+                domain = {
+                    "start": start,
+                    "end": end,
+                    "id": match_accession,
+                    "description": match_desc,
+                    "go_terms": go_results,
+                    "path_results": path_results
+                }
+                domains.append(domain)
+
 
     # If the all ORFs in the PRISM were used, then format it identically to the
     # PRISM JSON
