@@ -30,8 +30,12 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
 
     Generates a new dictionary object with a schema similar to the PRISM output.
 
-    :param ip_json:
-    :return:
+    Args:
+        ip_json: location of the InterProScan output JSON file
+        full_json: whether or not the InterProScan job contained all PRISM ORFs
+
+    Returns:
+        out_json: dictionary formatted in similar schema to PRISM
     """
 
     # Output File Prep
@@ -40,7 +44,8 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
     out_json['interpro_results'] = interpro_results
     clusters = {}
     interpro_results['clusters'] = clusters
-    # Parsing START
+
+    # Parsing
     j = json.load(open(ip_json, "r"))
     # Get Version
     out_json['interproscan_version'] = j['interproscan-version']
@@ -76,7 +81,7 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
             orf['domains'] = domains
             orf['go_results'] = go_results
             orf['path_results'] = path_results
-        # Fill in output with data
+        # Fill in output dictionary with data
         for match in r['matches']:
             match_accession = match['signature']['accession']
             match_desc = match['signature']['description']
@@ -109,27 +114,39 @@ def convert_ipr(ip_json: str, full_json: bool = True) -> dict:
                     path_results.append(path['id'])
             except (KeyError, TypeError):
                 pass
-    # Parse FINISH
-    # OPTIONAL
-    # Clean-up: change from dict to lists
-    cluster_list = [[] for x in range(len(clusters))]  # prototype
-    for cluster_no, cluster_dict in clusters.items():
-        orf_list = [[] for x in range(len(cluster_dict['orfs']))]  # prototype
-        for orf_num, orf in cluster_dict['orfs'].items():
-            orf_list[orf_num] = orf
-        cluster_list[cluster_no] = {
-            "orfs": orf_list
-        }
-    clusters = cluster_list
-    interpro_results['clusters'] = clusters
-    #
+
+    # If the all ORFs in the PRISM were used, then format it identically to the
+    # PRISM JSON
+    if full_json is True:
+        cluster_list = [[] for x in range(len(clusters))]  # prototype
+        for cluster_no, cluster_dict in clusters.items():
+            orf_list = [[] for x in range(len(cluster_dict['orfs']))]
+            for orf_num, orf in cluster_dict['orfs'].items():
+                orf_list[orf_num] = orf
+            cluster_list[cluster_no] = {
+                "orfs": orf_list
+            }
+        clusters = cluster_list
+        interpro_results['clusters'] = clusters
     return out_json
 
-def write_json(json_obj, json_out):
+
+def write_json(json_obj: dict, json_out: str) -> int:
+    """ Writes the dictionary out the specified file
+
+    Args:
+        json_obj: dictionary structured like a JSON object
+        json_out: location to write the JSON object to
+
+    Returns:
+        0: success
+    """
     import json
     with open(json_out, 'w') as fh:
-        tmp=json.dump(json_obj, fh)
+        tmp = json.dump(json_obj, fh)
+        del tmp
     return 0
+
 
 if __name__ == '__main__':
     main()
